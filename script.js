@@ -16,6 +16,13 @@ const world = {
     tileSize: 48
 };
 
+// TREE OBSTACLES
+const trees = [
+    [250, 250], [450, 450], [700, 300],
+    [1800, 250], [2050, 500], [2200, 1200],
+    [300, 1400], [650, 1550], [1800, 1500]
+];
+
 // PLAYER SETTINGS
 const player = {
     x: 1200,
@@ -58,7 +65,11 @@ window.addEventListener("blur", () => {
 });
 
 // DRAW WORLD
-function drawWorld() {
+function drawWorld(const trees = [
+    [250, 250], [450, 450], [700, 300],
+    [1800, 250], [2050, 500], [2200, 1200],
+    [300, 1400], [650, 1550], [1800, 1500]
+];) {
     const tile = world.tileSize;
 
     ctx.fillStyle = "#263d2d";
@@ -149,8 +160,47 @@ function drawPlayer() {
     ctx.fillRect(x + 14, y + 27, 8, 5);
 }
 
+// COLLISION SYSTEM
+function isBlocked(x, y) {
+
+    // World boundaries
+    if (
+        x < 0 ||
+        y < 0 ||
+        x + player.width > world.width ||
+        y + player.height > world.height
+    ) {
+        return true;
+    }
+
+    // Tree collision
+    for (const [treeX, treeY] of trees) {
+
+        const obstacle = {
+            x: treeX + 2,
+            y: treeY + 4,
+            width: 42,
+            height: 38
+        };
+
+        const collision =
+            x < obstacle.x + obstacle.width &&
+            x + player.width > obstacle.x &&
+            y < obstacle.y + obstacle.height &&
+            y + player.height > obstacle.y;
+
+        if (collision) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 // UPDATE PLAYER
 function updatePlayer(deltaTime) {
+
     let dx = 0;
     let dy = 0;
 
@@ -159,33 +209,33 @@ function updatePlayer(deltaTime) {
     if (keys["a"] || keys["arrowleft"]) dx -= 1;
     if (keys["d"] || keys["arrowright"]) dx += 1;
 
-    // Normalize diagonal movement
     if (dx !== 0 || dy !== 0) {
+
         const length = Math.sqrt(dx * dx + dy * dy);
 
         dx /= length;
         dy /= length;
 
-        player.x += dx * player.speed * deltaTime;
-        player.y += dy * player.speed * deltaTime;
+        const moveX = dx * player.speed * deltaTime;
+        const moveY = dy * player.speed * deltaTime;
 
+        // Horizontal collision
+        if (!isBlocked(player.x + moveX, player.y)) {
+            player.x += moveX;
+        }
+
+        // Vertical collision
+        if (!isBlocked(player.x, player.y + moveY)) {
+            player.y += moveY;
+        }
+
+        // Player direction
         if (Math.abs(dx) > Math.abs(dy)) {
             player.direction = dx > 0 ? "right" : "left";
         } else {
             player.direction = dy > 0 ? "down" : "up";
         }
     }
-
-    // Keep player inside world
-    player.x = Math.max(
-        0,
-        Math.min(world.width - player.width, player.x)
-    );
-
-    player.y = Math.max(
-        0,
-        Math.min(world.height - player.height, player.y)
-    );
 }
 
 // UPDATE CAMERA
